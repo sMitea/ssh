@@ -8,9 +8,8 @@ links = "ssh"
 build = "build.rs"
 repository = "https://pijul.org/ssh"
 documentation = "https://pijul.org/ssh/doc/ssh/index.html"
-doctest = false
 
 [dependencies]
 libc="0.2"
-log="0.3"
-bitflags="0.3"
+log="*"
+bitflags="*"

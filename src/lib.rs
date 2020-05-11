@@ -3,126 +3,12 @@
 //! Libssh is a client and server library supporting both versions 1 and 2 of the SSH protocol. The client part follows the behavior of openssh closely, in particular it parses ~/.ssh/config, and accepts ProxyCommand directives automatically.
 //!
 //! Although this binding is Apache/MIT-licensed, libssl itself is released under the LGPL. Make sure you understand what it means if you plan to link statically (this crate links dynamically by default).
-//!
-//!# Client examples
-//!
-//! ```
-//! use ssh::*;
-//!
-//! let mut session=Session::new().unwrap();
-//! session.set_host("pijul.org").unwrap();
-//! session.parse_config(None).unwrap();
-//! session.connect().unwrap();
-//! println!("{:?}",session.is_server_known());
-//! session.userauth_publickey_auto(None).unwrap();
-//! ```
-//!
-//!## Running a command on a remote server
-//!
-//!```
-//! use ssh::*;
-//! use std::io::Read;
-//!
-//! let mut session=Session::new().unwrap();
-//! session.set_host("pijul.org").unwrap();
-//! session.parse_config(None).unwrap();
-//! session.connect().unwrap();
-//! println!("{:?}",session.is_server_known());
-//! session.userauth_publickey_auto(None).unwrap();
-//! {
-//!     let mut s=session.channel_new().unwrap();
-//!     s.open_session().unwrap();
-//!     s.request_exec(b"ls -l").unwrap();
-//!     s.send_eof().unwrap();
-//!     let mut buf=Vec::new();
-//!     s.stdout().read_to_end(&mut buf).unwrap();
-//!     println!("{:?}",std::str::from_utf8(&buf).unwrap());
-//! }
-//!```
-//!
-//!## Creating a remote file
-//!
-//!```
-//! use ssh::*;
-//! use std::io::Write;
-//!
-//! let mut session=Session::new().unwrap();
-//! session.set_host("pijul.org").unwrap();
-//! session.parse_config(None).unwrap();
-//! session.connect().unwrap();
-//! println!("{:?}",session.is_server_known());
-//! session.userauth_publickey_auto(None).unwrap();
-//! {
-//!     let mut scp=session.scp_new(WRITE,"/tmp").unwrap();
-//!     scp.init().unwrap();
-//!     let buf=b"blabla blibli\n".to_vec();
-//!     scp.push_file("blublu",buf.len(),0o644).unwrap();
-//!     scp.write(&buf).unwrap();
-//! }
-//!```
-//!
-//!## Creating a remote directory with a file inside
-//!
-//!```
-//! use ssh::*;
-//! use std::io::Write;
-//!
-//! let mut session=Session::new().unwrap();
-//! session.set_host("pijul.org").unwrap();
-//! session.parse_config(None).unwrap();
-//! session.connect().unwrap();
-//! println!("{:?}",session.is_server_known());
-//! session.userauth_publickey_auto(None).unwrap();
-//! {
-//!     let mut scp=session.scp_new(RECURSIVE|WRITE,"/tmp").unwrap();
-//!     scp.init().unwrap();
-//!     scp.push_directory("testdir",0o755).unwrap();
-//!     let buf=b"blabla\n".to_vec();
-//!     scp.push_file("test file",buf.len(),0o644).unwrap();
-//!     scp.write(&buf).unwrap();
-//! }
-//!
-//!```
-//!
-//!## Reading a remote file
-//!
-//!```
-//! use ssh::*;
-//! use std::io::Read;
-//!
-//! let mut session=Session::new().unwrap();
-//! session.set_host("pijul.org").unwrap();
-//! session.parse_config(None).unwrap();
-//! session.connect().unwrap();
-//! println!("{:?}",session.is_server_known());
-//! session.userauth_publickey_auto(None).unwrap();
-//! {
-//!     let mut scp=session.scp_new(READ,"/tmp/blublu").unwrap();
-//!     scp.init().unwrap();
-//!     loop {
-//!         match scp.pull_request().unwrap() {
-//!             Request::NEWFILE=>{
-//!                 let mut buf:Vec<u8>=vec!();
-//!                 scp.accept_request().unwrap();
-//!                 scp.reader().read_to_end(&mut buf).unwrap();
-//!                 println!("{:?}",std::str::from_utf8(&buf).unwrap());
-//!                 break;
-//!             },
-//!             Request::WARNING=>{
-//!                 scp.deny_request().unwrap();
-//!                 break;
-//!             },
-//!             _=>scp.deny_request().unwrap()
-//!         }
-//!     }
-//! }
-//!```
-
+#[warn(deprecated)]
 extern crate libc;
-use self::libc::{c_char, c_int, c_uint, c_void, size_t, uint64_t};
+use self::libc::{c_char, c_int, c_uint, c_void, size_t};
 use std::ffi::CString;
 use std::fmt;
-use std::io::{Read, Write};
+use std::io::Read;
 use std::path::Path;
 use std::ptr::copy_nonoverlapping;
 #[macro_use]
@@ -143,6 +29,7 @@ extern "C" {
     fn ssh_options_set(s: *mut Session_, t: c_int, v: *const c_void) -> c_int;
     fn ssh_options_parse_config(s: *mut Session_, v: *const c_char) -> c_int;
     fn ssh_get_error(s: *const c_void) -> *const c_char;
+    fn ssh_get_error_code(s: *const c_void) -> c_int;
     fn ssh_userauth_password(s: *mut Session_, user: *const c_char, p: *const c_char) -> c_int;
     fn ssh_userauth_kbdint(s: *mut Session_, user: *const c_char, p: *const c_char) -> c_int;
     fn ssh_userauth_publickey_auto(
@@ -170,33 +57,33 @@ impl std::fmt::Debug for Session {
 enum SshOptions {
     HOST,
     PORT,
-    PORT_STR,
+    PortStr,
     FD,
     USER,
-    SSH_DIR,
+    SshDir,
     IDENTITY,
-    ADD_IDENTITY,
+    AddIdentity,
     KNOWNHOSTS,
     TIMEOUT,
-    TIMEOUT_USEC,
+    TimeoutUsec,
     SSH1,
     SSH2,
-    LOG_VERBOSITY,
-    LOG_VERBOSITY_STR,
-    CIPHERS_C_S,
-    CIPHERS_S_C,
-    COMPRESSION_C_S,
-    COMPRESSION_S_C,
+    LogVerbosity,
+    LogVerbosityStr,
+    CiphersCS,
+    CiphersSC,
+    CompressionCS,
+    CompressionSC,
     PROXYCOMMAND,
     BINDADDR,
     STRICTHOSTKEYCHECK,
     COMPRESSION,
-    COMPRESSION_LEVEL,
-    KEY_EXCHANGE,
+    CompressionLevel,
+    KeyExchange,
     HOSTKEYS,
-    GSSAPI_SERVER_IDENTITY,
-    GSSAPI_CLIENT_IDENTITY,
-    GSSAPI_DELEGATE_CREDENTIALS,
+    GssapiServerIdentity,
+    GssapiClientIdentity,
+    GssapiDelegateCredentials,
 }
 
 fn path_as_ptr(p: &Path) -> CString {
@@ -205,50 +92,29 @@ fn path_as_ptr(p: &Path) -> CString {
 }
 
 #[derive(Debug)]
-pub enum Error {
-    Ssh(String),
-    IO(std::io::Error),
+pub struct Error {
+    code: i32,
+    msg: String,
 }
 
 fn err(session: &Session) -> Error {
-    Error::Ssh(unsafe {
+    let msg = unsafe {
         let err = ssh_get_error(session.session as *const c_void);
         let slice = std::slice::from_raw_parts(err as *const u8, libc::strlen(err));
         std::str::from_utf8(slice).unwrap().to_string()
-    })
+    };
+    let code = unsafe { ssh_get_error_code(session.session as *const c_void) };
+    Error { code, msg }
 }
 
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match *self {
-            Error::Ssh(ref descr) => write!(f, "SSH error: {}", descr),
-            Error::IO(ref e) => e.fmt(f),
-        }
+        write!(f, "{}", self.msg)
     }
 }
 
-//pub type Error=&'static str;
-impl std::error::Error for Error {
-    fn description(&self) -> &str {
-        match *self {
-            Error::Ssh(ref descr) => descr,
-            Error::IO(ref e) => e.description(),
-        }
-    }
-    fn cause(&self) -> Option<&std::error::Error> {
-        match *self {
-            Error::Ssh(_) => None,
-            Error::IO(ref e) => Some(e),
-        }
-    }
-}
+impl std::error::Error for Error {}
 const SSH_OK: c_int = 0;
-
-impl From<std::io::Error> for Error {
-    fn from(err: std::io::Error) -> Error {
-        Error::IO(err)
-    }
-}
 
 impl Session {
     pub fn new() -> Result<Session, ()> {
@@ -289,6 +155,24 @@ impl Session {
             Err(err(self))
         }
     }
+
+    /// set a timeout for the connection in seconds
+    pub fn set_timeout(&mut self, timeout: usize) -> Result<(), Error> {
+        let v = [timeout as c_uint];
+        let e = unsafe {
+            ssh_options_set(
+                self.session,
+                SshOptions::TIMEOUT as c_int,
+                v.as_ptr() as *const c_void,
+            )
+        };
+        if e == SSH_OK {
+            Ok(())
+        } else {
+            Err(err(self))
+        }
+    }
+
     pub fn set_username(&mut self, v: &str) -> Result<(), Error> {
         let v = std::ffi::CString::new(v).unwrap();
         let e = unsafe {
@@ -676,7 +560,6 @@ impl<'d, 'c> Read for ChannelReader<'d, 'c> {
 }
 
 extern "C" {
-    // The "SCP subsystem"
     fn ssh_scp_new(s: *mut Session_, mode: c_int, location: *const c_char) -> *mut Scp_;
     fn ssh_scp_init(s: *mut Scp_) -> c_int;
     fn ssh_scp_free(s: *mut Scp_) -> c_int;
@@ -685,19 +568,14 @@ extern "C" {
     fn ssh_scp_accept_request(s: *mut Scp_) -> c_int;
     fn ssh_scp_deny_request(s: *mut Scp_) -> c_int;
     fn ssh_scp_read(s: *mut Scp_, b: *mut c_char, st: size_t) -> c_int;
-    //fn ssh_scp_push_file(s:*mut Scp_,b:*const c_char,st:size_t,mode:c_int)->c_int;
-    fn ssh_scp_push_file64(s: *mut Scp_, b: *const c_char, st: uint64_t, mode: c_int) -> c_int;
+    fn ssh_scp_push_file64(s: *mut Scp_, b: *const c_char, st: u64, mode: c_int) -> c_int;
     fn ssh_scp_push_directory(s: *mut Scp_, b: *const c_char, mode: c_int) -> c_int;
     fn ssh_scp_write(s: *mut Scp_, b: *const c_char, st: size_t) -> c_int;
-    //fn ssh_scp_request_get_size(s:*mut Scp_)->c_int;
-    fn ssh_scp_request_get_size64(s: *mut Scp_) -> uint64_t;
+    fn ssh_scp_request_get_size64(s: *mut Scp_) -> u64;
     fn ssh_scp_request_get_permissions(s: *mut Scp_) -> c_int;
     fn ssh_scp_request_get_filename(s: *mut Scp_) -> *const c_char;
     fn ssh_scp_request_get_warning(s: *mut Scp_) -> *const c_char;
-    // integer_mode: string in octal -> integer (= atoi in octal).
     fn ssh_scp_leave_directory(s: *mut Scp_) -> c_int;
-// read_string: (= read_line) done by the std::io::Read trait
-// string_mode: itoa in octal
 }
 
 #[allow(missing_copy_implementations)]
@@ -775,12 +653,8 @@ impl<'b> Scp<'b> {
     ) -> Result<(), Error> {
         unsafe {
             let p = path_as_ptr(path.as_ref());
-            let e = ssh_scp_push_file64(
-                self.scp,
-                p.as_ptr() as *const _,
-                size as uint64_t,
-                mode as c_int,
-            );
+            let e =
+                ssh_scp_push_file64(self.scp, p.as_ptr() as *const _, size as u64, mode as c_int);
             if e == 0 {
                 Ok(())
             } else {
