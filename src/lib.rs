@@ -20,6 +20,8 @@ extern crate bitflags;
 #[allow(missing_copy_implementations)]
 enum Session_ {}
 
+unsafe impl Send for Session_ {}
+
 #[link(name = "ssh")]
 extern "C" {
     fn ssh_new() -> *mut Session_;
