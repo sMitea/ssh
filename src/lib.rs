@@ -20,8 +20,8 @@ extern crate bitflags;
 #[allow(missing_copy_implementations)]
 enum Session_ {}
 
-unsafe impl Send for Session_ {}
-unsafe impl Sync for Session_ {}
+unsafe impl Send for Session {}
+unsafe impl Sync for Session {}
 
 #[link(name = "ssh")]
 extern "C" {
