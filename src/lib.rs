@@ -589,7 +589,7 @@ pub struct Scp<'b> {
 }
 
 bitflags! {
-    flags  Mode:c_int {
+    flags Mode:c_int {
         const WRITE = 0x0,
         const READ = 0x1,
         const RECURSIVE = 0x10
