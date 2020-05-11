@@ -93,8 +93,8 @@ fn path_as_ptr(p: &Path) -> CString {
 
 #[derive(Debug)]
 pub struct Error {
-    code: i32,
-    msg: String,
+    pub code: i32,
+    pub msg: String,
 }
 
 fn err(session: &Session) -> Error {
