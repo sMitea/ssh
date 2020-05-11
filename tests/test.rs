@@ -48,7 +48,7 @@ fn create_remote_file() {
     println!("{:?}", session.is_server_known());
     session.userauth_password(TEST_PWD).unwrap();
     {
-        let mut scp = session.scp_new(WRITE, "/tmp").unwrap();
+        let mut scp = session.scp_new(Mode::WRITE, "/tmp").unwrap();
         scp.init().unwrap();
         let buf = b"blabla blibli\n".to_vec();
         scp.push_file("blublu", buf.len(), 0o644).unwrap();
@@ -66,7 +66,9 @@ fn create_remote_dir() {
     println!("{:?}", session.is_server_known());
     session.userauth_password(TEST_PWD).unwrap();
     {
-        let mut scp = session.scp_new(RECURSIVE | WRITE, "/tmp").unwrap();
+        let mut scp = session
+            .scp_new(Mode::RECURSIVE | Mode::WRITE, "/tmp")
+            .unwrap();
         scp.init().unwrap();
         scp.push_directory("testdir", 0o755).unwrap();
         let buf = b"blabla\n".to_vec();
@@ -85,7 +87,7 @@ fn read_remote_file() {
     println!("{:?}", session.is_server_known());
     session.userauth_password(TEST_PWD).unwrap();
     {
-        let mut scp = session.scp_new(READ, "/tmp/blublu").unwrap();
+        let mut scp = session.scp_new(Mode::READ, "/tmp/blublu").unwrap();
         scp.init().unwrap();
         loop {
             match scp.pull_request().unwrap() {

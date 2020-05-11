@@ -589,13 +589,12 @@ pub struct Scp<'b> {
 }
 
 bitflags! {
-    flags Mode:c_int {
-        const WRITE = 0x0,
-        const READ = 0x1,
-        const RECURSIVE = 0x10
+    pub struct Mode:c_int {
+        const WRITE = 0x0;
+        const READ = 0x1;
+        const RECURSIVE = 0x10;
     }
 }
-
 #[repr(C)]
 #[derive(Debug)]
 pub enum Request {
