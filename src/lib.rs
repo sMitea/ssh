@@ -6,9 +6,10 @@
 #[warn(deprecated)]
 extern crate libc;
 use self::libc::{c_char, c_int, c_uint, c_void, size_t};
+use libc::{c_uchar, c_ulonglong, uintmax_t};
 use std::ffi::CString;
 use std::fmt;
-use std::io::Read;
+use std::io::{Read, Seek};
 use std::path::Path;
 use std::ptr::copy_nonoverlapping;
 #[macro_use]
@@ -426,6 +427,18 @@ impl Session {
             })
         }
     }
+
+    pub fn sftp_new(&mut self) -> Result<Sftp, Error> {
+        let sftp = unsafe { sftp_new(self.session) };
+        if sftp.is_null() {
+            Err(err(self))
+        } else {
+            Ok(Sftp {
+                session: self,
+                sftp,
+            })
+        }
+    }
 }
 
 impl Drop for Session {
@@ -598,6 +611,7 @@ bitflags! {
         const RECURSIVE = 0x10;
     }
 }
+
 #[repr(C)]
 #[derive(Debug)]
 pub enum Request {
@@ -774,5 +788,192 @@ impl<'c> std::io::Write for Scp<'c> {
     }
     fn flush(&mut self) -> Result<(), std::io::Error> {
         Ok(())
+    }
+}
+
+#[allow(missing_copy_implementations)]
+enum Sftp_ {}
+
+pub struct Sftp<'b> {
+    session: &'b Session,
+    sftp: *mut Sftp_,
+}
+
+impl<'b> Drop for Sftp<'b> {
+    fn drop(&mut self) {
+        unsafe {
+            sftp_free(self.sftp);
+        }
+    }
+}
+
+extern "C" {
+    fn sftp_new(s: *mut Session_) -> *mut Sftp_;
+    fn sftp_stat(s: *mut Sftp_, path: *const c_char) -> *mut LIBSSH_SFTP_ATTRIBUTES;
+    fn sftp_init(s: *mut Sftp_) -> c_int;
+    fn sftp_free(s: *mut Sftp_);
+}
+
+impl<'b> Sftp<'b> {
+    pub fn init(&mut self) -> Result<(), Error> {
+        let e = unsafe { sftp_init(self.sftp) };
+        if e == 0 {
+            Ok(())
+        } else {
+            Err(err(self.session))
+        }
+    }
+
+    pub fn open<P: AsRef<Path>>(
+        &mut self,
+        path: P,
+        access: usize,
+        mode: usize,
+    ) -> Result<SftpFile, Error> {
+        let p = path_as_ptr(path.as_ref());
+
+        let stat = unsafe { sftp_stat(self.sftp, p.as_ptr() as *const _) };
+        if stat.is_null() {
+            return Err(err(self.session));
+        };
+        let file = unsafe {
+            sftp_open(
+                self.sftp,
+                p.as_ptr() as *const _,
+                access as c_int,
+                mode as c_int,
+            )
+        };
+        if file.is_null() {
+            return Err(err(self.session));
+        } else {
+            let size = if !stat.is_null() {
+                unsafe { (*stat).size }
+            } else {
+                0_u64
+            };
+            Ok(SftpFile {
+                sftp: self,
+                file,
+                size,
+            })
+        }
+    }
+}
+
+pub struct SftpFile<'b> {
+    sftp: &'b Sftp<'b>,
+    file: *mut SftpFile_,
+    size: u64,
+}
+
+#[allow(missing_copy_implementations)]
+enum SftpFile_ {}
+
+extern "C" {
+    fn sftp_close(s: *mut SftpFile_) -> c_int;
+    fn sftp_open(s: *mut Sftp_, b: *const c_char, c: c_int, mode: c_int) -> *mut SftpFile_;
+    fn sftp_read(s: *mut SftpFile_, b: *mut c_void, st: size_t) -> c_int;
+    fn sftp_seek64(s: *mut SftpFile_, new_offset: c_ulonglong) -> c_int;
+    fn sftp_tell64(s: *mut SftpFile_) -> uintmax_t;
+}
+
+#[repr(C)]
+struct LIBSSH_SFTP_ATTRIBUTES {
+    name: *const c_char,
+    longname: *const c_char,
+    flags: c_uint,
+    type_: c_uchar,
+    size: c_ulonglong,
+    uid: c_uint,
+    gid: c_uint,
+    owner: *const c_char,
+    group: *const c_char,
+    permissions: c_uint,
+    atime64: c_ulonglong,
+    atime: c_uint,
+    atime_nseconds: c_uint,
+    createtime: c_ulonglong,
+    createtime_nseconds: c_uint,
+    mtime64: c_ulonglong,
+    mtime: c_uint,
+    mtime_nseconds: c_uint,
+}
+
+impl<'b> SftpFile<'b> {}
+
+impl<'b> Drop for SftpFile<'b> {
+    fn drop(&mut self) {
+        unsafe {
+            sftp_close(self.file);
+        }
+    }
+}
+
+impl<'b> Read for SftpFile<'b> {
+    fn read(&mut self, buf: &mut [u8]) -> Result<usize, std::io::Error> {
+        if self.size <= 0 {
+            return Ok(0);
+        }
+        let e = unsafe {
+            sftp_read(
+                self.file,
+                buf.as_mut_ptr() as *mut c_void,
+                buf.len() as size_t,
+            )
+        };
+        if e >= 0 {
+            Ok(e as usize)
+        } else {
+            Err(std::io::Error::new(
+                std::io::ErrorKind::Other,
+                err(self.sftp.session),
+            ))
+        }
+    }
+}
+
+impl<'b> Seek for SftpFile<'b> {
+    fn seek(&mut self, pos: std::io::SeekFrom) -> std::io::Result<u64> {
+        match pos {
+            std::io::SeekFrom::Current(index) => unsafe {
+                let position = sftp_tell64(self.file);
+                println!("position: {}", position);
+                let tell = if (index < 0) && (position > 0) {
+                    (position as i128) + (index as i128)
+                } else {
+                    index as i128
+                };
+                let e = sftp_seek64(self.file, tell as u64);
+
+                if e < 0 {
+                    return Err(std::io::Error::new(
+                        std::io::ErrorKind::Other,
+                        err(self.sftp.session),
+                    ));
+                }
+            },
+            std::io::SeekFrom::Start(index) => {
+                let e = unsafe { sftp_seek64(self.file, index) };
+                if e < 0 {
+                    return Err(std::io::Error::new(
+                        std::io::ErrorKind::Other,
+                        err(self.sftp.session),
+                    ));
+                }
+            }
+            std::io::SeekFrom::End(index) => unsafe {
+                let tell = (self.size as i128) - (index as i128);
+                let e = sftp_seek64(self.file, tell as u64);
+
+                if e < 0 {
+                    return Err(std::io::Error::new(
+                        std::io::ErrorKind::Other,
+                        err(self.sftp.session),
+                    ));
+                }
+            },
+        };
+        Ok(0)
     }
 }

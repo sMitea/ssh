@@ -1,6 +1,6 @@
 extern crate ssh;
 use ssh::*;
-use std::io::{Read, Write};
+use std::io::{BufRead, BufReader, Read, Seek, SeekFrom, Write};
 
 const TEST_ADDR: &str = "127.0.0.1";
 const TEST_PORT: usize = 49160;
@@ -30,7 +30,7 @@ fn run_cmd() {
     {
         let mut s = session.channel_new().unwrap();
         s.open_session().unwrap();
-        s.request_exec(b"ls -l").unwrap();
+        s.request_exec(b"echo Hello world").unwrap();
         s.send_eof().unwrap();
         let mut buf = Vec::new();
         s.stdout().read_to_end(&mut buf).unwrap();
@@ -78,7 +78,7 @@ fn create_remote_dir() {
 }
 
 #[test]
-fn read_remote_file() {
+fn sftp() {
     let mut session = Session::new().unwrap();
     session.set_host(TEST_ADDR).unwrap();
     session.set_port(TEST_PORT).unwrap();
@@ -87,23 +87,17 @@ fn read_remote_file() {
     println!("{:?}", session.is_server_known());
     session.userauth_password(TEST_PWD).unwrap();
     {
-        let mut scp = session.scp_new(Mode::READ, "/tmp/blublu").unwrap();
-        scp.init().unwrap();
-        loop {
-            match scp.pull_request().unwrap() {
-                Request::NEWFILE => {
-                    let mut buf: Vec<u8> = vec![];
-                    scp.accept_request().unwrap();
-                    scp.reader().read_to_end(&mut buf).unwrap();
-                    println!("{:?}", std::str::from_utf8(&buf).unwrap());
-                    break;
-                }
-                Request::WARNING => {
-                    scp.deny_request().unwrap();
-                    break;
-                }
-                _ => scp.deny_request().unwrap(),
-            }
+        let mut sftp = session.sftp_new().unwrap();
+        sftp.init().unwrap();
+        let file = sftp
+            .open("/etc/hosts", libc::O_RDONLY as usize, 0700)
+            .unwrap();
+        let mut buffer = BufReader::new(file);
+        buffer.seek(SeekFrom::End(20)).unwrap();
+
+        let lines = buffer.lines();
+        for line in lines {
+            println!("output: {}", line.unwrap());
         }
     }
 }
