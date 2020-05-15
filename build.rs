@@ -9,7 +9,7 @@ fn main() {
     }
 
     pkg_config::Config::new()
-        .atleast_version("0.8")
+        .atleast_version("0.7")
         .statik(false)
         .probe("libssh")
         .expect("dynamically linked libssh >= 0.8 is required");
@@ -23,8 +23,8 @@ fn try_vcpkg() -> bool {
 #[cfg(target_env = "msvc")]
 fn try_vcpkg() -> bool {
     vcpkg::Config::new()
-        .atleast_version("0.8")
+        .atleast_version("0.7")
         .statik(false)
         .probe("libssh")
-        .expect("dynamically linked libssh >= 0.8 is required");
+        .expect("dynamically linked libssh >= 0.7 is required");
 }
