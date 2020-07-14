@@ -12,6 +12,8 @@ use std::fmt;
 use std::io::{Read, Seek};
 use std::path::Path;
 use std::ptr::copy_nonoverlapping;
+use std::time::Duration;
+
 #[macro_use]
 extern crate log;
 
@@ -482,6 +484,13 @@ extern "C" {
     fn ssh_channel_open_session(s: *mut Channel_) -> c_int;
     fn ssh_channel_request_exec(s: *mut Channel_, b: *const c_char) -> c_int;
     fn ssh_channel_read(s: *mut Channel_, b: *mut c_char, c: size_t, is_stderr: c_int) -> c_int;
+    fn ssh_channel_read_timeout(
+        s: *mut Channel_,
+        b: *mut c_char,
+        c: size_t,
+        is_stderr: c_int,
+        timeout_ms: c_int,
+    ) -> c_int;
     fn ssh_channel_send_eof(s: *mut Channel_) -> c_int;
     fn ssh_channel_get_exit_status(s: *const Channel_) -> c_int;
 }
@@ -554,6 +563,26 @@ impl<'b> Drop for Channel<'b> {
     fn drop(&mut self) {
         debug!("ssh_channel_free");
         unsafe { ssh_channel_free(self.channel) };
+    }
+}
+
+impl<'d, 'c> ChannelReader<'d, 'c> {
+    pub fn read_timeout(&mut self, buf: &mut [u8], timeout: Duration) -> Result<usize, std::io::Error> {
+        let ms = timeout.as_millis();
+        let e = unsafe {
+            ssh_channel_read_timeout(
+                self.channel.channel,
+                buf.as_mut_ptr() as *mut c_char,
+                buf.len() as size_t,
+                self.is_stderr,
+                ms as c_int,
+            )
+        };
+        if e >= 0 {
+            Ok(e as usize)
+        } else {
+            Err(std::io::Error::last_os_error())
+        }
     }
 }
 
