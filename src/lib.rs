@@ -905,6 +905,7 @@ extern "C" {
     fn sftp_read(s: *mut SftpFile_, b: *mut c_void, st: size_t) -> c_int;
     fn sftp_seek64(s: *mut SftpFile_, new_offset: c_ulonglong) -> c_int;
     fn sftp_tell64(s: *mut SftpFile_) -> uintmax_t;
+    fn sftp_write(s: *mut SftpFile_, b: *const c_char, st: size_t) -> c_int;
 }
 
 #[repr(C)]
@@ -959,6 +960,24 @@ impl<'b> Read for SftpFile<'b> {
                 err(self.sftp.session),
             ))
         }
+    }
+}
+
+impl<'c> std::io::Write for SftpFile<'c> {
+    fn write(&mut self, buf: &[u8]) -> Result<usize, std::io::Error> {
+        let e =
+            unsafe { sftp_write(self.file, buf.as_ptr() as *mut c_char, buf.len() as size_t) };
+        if e >= 0 {
+            Ok(e as usize)
+        } else {
+            Err(std::io::Error::new(
+                std::io::ErrorKind::Other,
+                err(self.sftp.session),
+            ))
+        }
+    }
+    fn flush(&mut self) -> Result<(), std::io::Error> {
+        Ok(())
     }
 }
 

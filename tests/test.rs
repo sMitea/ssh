@@ -92,7 +92,7 @@ fn create_remote_dir() {
     session.userauth_password(TEST_PWD).unwrap();
     {
         let mut scp = session
-            .scp_new(Mode::RECURSIVE | Mode::WRITE, "/tmp")
+            .scp_new(Mode::RECURSIVE | Mode::WRITE, "/test")
             .unwrap();
         scp.init().unwrap();
         scp.push_directory("testdir", 0o755).unwrap();
@@ -103,7 +103,7 @@ fn create_remote_dir() {
 }
 
 #[test]
-fn sftp() {
+fn sftp_read() {
     let mut session = Session::new().unwrap();
     session.set_host(TEST_ADDR).unwrap();
     session.set_port(TEST_PORT).unwrap();
@@ -124,5 +124,25 @@ fn sftp() {
         for line in lines {
             println!("output: {}", line.unwrap());
         }
+    }
+}
+
+#[test]
+fn sftp_write() {
+    let mut session = Session::new().unwrap();
+    session.set_host(TEST_ADDR).unwrap();
+    session.set_port(TEST_PORT).unwrap();
+    session.set_username(TEST_USER).unwrap();
+    session.connect().unwrap();
+    println!("{:?}", session.is_server_known());
+    session.userauth_password(TEST_PWD).unwrap();
+    {
+        let mut sftp = session.sftp_new().unwrap();
+        sftp.init().unwrap();
+        let mut file = sftp
+            .open("/etc/hosts", (libc::O_CREAT | libc::O_WRONLY | libc::O_TRUNC) as usize, 0700)
+            .unwrap();
+        let buf = b"blabla\n".to_vec();
+        file.write(&buf).unwrap();
     }
 }
