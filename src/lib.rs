@@ -441,6 +441,19 @@ impl Session {
             })
         }
     }
+
+    pub fn mkdir<P: AsRef<Path>>(&mut self, path: P, mode: usize) -> Result<Sftp, Error> {
+        let p = path_as_ptr(path.as_ref());
+        let sftp = unsafe { sftp_mkdir(self.session,p.as_ptr() as *const _, mode as c_int) };
+        if sftp.is_null() {
+            Err(err(self))
+        } else {
+            Ok(Sftp {
+                session: self,
+                sftp,
+            })
+        }
+    }
 }
 
 impl Drop for Session {
@@ -567,7 +580,11 @@ impl<'b> Drop for Channel<'b> {
 }
 
 impl<'d, 'c> ChannelReader<'d, 'c> {
-    pub fn read_timeout(&mut self, buf: &mut [u8], timeout: Duration) -> Result<usize, std::io::Error> {
+    pub fn read_timeout(
+        &mut self,
+        buf: &mut [u8],
+        timeout: Duration,
+    ) -> Result<usize, std::io::Error> {
         let ms = timeout.as_millis();
         let e = unsafe {
             ssh_channel_read_timeout(
@@ -838,6 +855,7 @@ impl<'b> Drop for Sftp<'b> {
 
 extern "C" {
     fn sftp_new(s: *mut Session_) -> *mut Sftp_;
+    fn sftp_mkdir(s: *mut Session_, path: *const c_char, mode: c_int) -> *mut Sftp_;
     fn sftp_stat(s: *mut Sftp_, path: *const c_char) -> *mut LIBSSH_SFTP_ATTRIBUTES;
     fn sftp_init(s: *mut Sftp_) -> c_int;
     fn sftp_free(s: *mut Sftp_);
@@ -930,7 +948,11 @@ struct LIBSSH_SFTP_ATTRIBUTES {
     mtime_nseconds: c_uint,
 }
 
-impl<'b> SftpFile<'b> {}
+impl<'b> SftpFile<'b> {
+    pub fn get_size(&self) -> u64{
+        self.size
+    }
+}
 
 impl<'b> Drop for SftpFile<'b> {
     fn drop(&mut self) {
@@ -965,8 +987,7 @@ impl<'b> Read for SftpFile<'b> {
 
 impl<'c> std::io::Write for SftpFile<'c> {
     fn write(&mut self, buf: &[u8]) -> Result<usize, std::io::Error> {
-        let e =
-            unsafe { sftp_write(self.file, buf.as_ptr() as *mut c_char, buf.len() as size_t) };
+        let e = unsafe { sftp_write(self.file, buf.as_ptr() as *mut c_char, buf.len() as size_t) };
         if e >= 0 {
             Ok(e as usize)
         } else {

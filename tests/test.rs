@@ -64,45 +64,6 @@ fn run_cmd_with_timeout() {
 }
 
 #[test]
-fn create_remote_file() {
-    let mut session = Session::new().unwrap();
-    session.set_host(TEST_ADDR).unwrap();
-    session.set_port(TEST_PORT).unwrap();
-    session.set_username(TEST_USER).unwrap();
-    session.connect().unwrap();
-    println!("{:?}", session.is_server_known());
-    session.userauth_password(TEST_PWD).unwrap();
-    {
-        let mut scp = session.scp_new(Mode::WRITE, "/tmp").unwrap();
-        scp.init().unwrap();
-        let buf = b"blabla blibli\n".to_vec();
-        scp.push_file("blublu", buf.len(), 0o644).unwrap();
-        scp.write(&buf).unwrap();
-    }
-}
-
-#[test]
-fn create_remote_dir() {
-    let mut session = Session::new().unwrap();
-    session.set_host(TEST_ADDR).unwrap();
-    session.set_port(TEST_PORT).unwrap();
-    session.set_username(TEST_USER).unwrap();
-    session.connect().unwrap();
-    println!("{:?}", session.is_server_known());
-    session.userauth_password(TEST_PWD).unwrap();
-    {
-        let mut scp = session
-            .scp_new(Mode::RECURSIVE | Mode::WRITE, "/test")
-            .unwrap();
-        scp.init().unwrap();
-        scp.push_directory("testdir", 0o755).unwrap();
-        let buf = b"blabla\n".to_vec();
-        scp.push_file("test file", buf.len(), 0o644).unwrap();
-        scp.write(&buf).unwrap();
-    }
-}
-
-#[test]
 fn sftp_read() {
     let mut session = Session::new().unwrap();
     session.set_host(TEST_ADDR).unwrap();
@@ -140,7 +101,27 @@ fn sftp_write() {
         let mut sftp = session.sftp_new().unwrap();
         sftp.init().unwrap();
         let mut file = sftp
-            .open("/etc/hosts", (libc::O_CREAT | libc::O_WRONLY | libc::O_TRUNC) as usize, 0700)
+            .open("/tmp/test", (libc::O_CREAT | libc::O_WRONLY | libc::O_TRUNC) as usize, 0700)
+            .unwrap();
+        let buf = b"blabla\n".to_vec();
+        file.write(&buf).unwrap();
+    }
+}
+
+#[test]
+fn sftp_write() {
+    let mut session = Session::new().unwrap();
+    session.set_host(TEST_ADDR).unwrap();
+    session.set_port(TEST_PORT).unwrap();
+    session.set_username(TEST_USER).unwrap();
+    session.connect().unwrap();
+    println!("{:?}", session.is_server_known());
+    session.userauth_password(TEST_PWD).unwrap();
+    {
+        let mut sftp = session.sftp_new().unwrap();
+        sftp.init().unwrap();
+        let mut file = sftp
+            .open("/tmp/test", (libc::O_CREAT | libc::O_WRONLY | libc::O_TRUNC) as usize, 0700)
             .unwrap();
         let buf = b"blabla\n".to_vec();
         file.write(&buf).unwrap();
