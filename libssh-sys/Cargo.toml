@@ -1,0 +1,29 @@
+[package]
+name = "libssh-sys"
+version = "0.1.0"
+authors = ["ShawHrown <shawhrown@163.com>"]
+edition = "2018"
+links = "ssh"
+
+[dependencies]
+libc="0.2"
+log="*"
+bitflags="1.2.1"
+libz-sys = "1.0.21"
+
+[lib]
+name = "libssh_sys"
+path = "src/lib.rs"
+
+[features]
+vendored-openssl = ["openssl-sys/vendored"]
+
+[target."cfg(unix)".dependencies]
+openssl-sys = "0.9.35"
+
+[build-dependencies]
+pkg-config = "0.3.11"
+cc = "1.0.25"
+
+[target.'cfg(target_env = "msvc")'.build-dependencies]
+vcpkg = "0.2"

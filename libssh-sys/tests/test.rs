@@ -1,5 +1,6 @@
-extern crate ssh;
-use ssh::*;
+extern crate libssh_sys;
+
+use libssh_sys::*;
 use std::{
     io::{BufRead, BufReader, Read, Seek, SeekFrom, Write},
     time::Duration,
@@ -85,26 +86,6 @@ fn sftp_read() {
         for line in lines {
             println!("output: {}", line.unwrap());
         }
-    }
-}
-
-#[test]
-fn sftp_write() {
-    let mut session = Session::new().unwrap();
-    session.set_host(TEST_ADDR).unwrap();
-    session.set_port(TEST_PORT).unwrap();
-    session.set_username(TEST_USER).unwrap();
-    session.connect().unwrap();
-    println!("{:?}", session.is_server_known());
-    session.userauth_password(TEST_PWD).unwrap();
-    {
-        let mut sftp = session.sftp_new().unwrap();
-        sftp.init().unwrap();
-        let mut file = sftp
-            .open("/tmp/test", (libc::O_CREAT | libc::O_WRONLY | libc::O_TRUNC) as usize, 0700)
-            .unwrap();
-        let buf = b"blabla\n".to_vec();
-        file.write(&buf).unwrap();
     }
 }
 
