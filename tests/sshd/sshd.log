@@ -1,4 +1,0 @@
-/Users/smitea/Developer/rust/ssh/tests/sshd/sshd_config line 7: Deprecated option UsePrivilegeSeparation
-Server listening on :: port 8022.
-Server listening on 0.0.0.0 port 8022.
-Received signal 15; terminating.
