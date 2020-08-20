@@ -3,14 +3,10 @@ sudo: required
 dist: bionic
 os: 
   - linux
-  - macos
 addons:
     apt:
         packages:
             - libssl-dev
-    brew:
-        packages:
-            - openssl
 cache: cargo
 rust:
   - stable
