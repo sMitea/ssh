@@ -1,7 +1,4 @@
 extern crate pkg_config;
-#[cfg(target_env = "msvc")]
-extern crate vcpkg;
-
 use std::path::{Path, PathBuf};
 use std::{env, process::Command};
 
@@ -15,11 +12,6 @@ fn check_update_git() {
 
 fn main() {
     check_update_git();
-    let target = env::var("TARGET").unwrap();
-    if try_vcpkg(){
-        return;
-    }
-
     println!("cargo:rerun-if-env-changed=LIBSSH_SYS_USE_PKG_CONFIG");
     if env::var("LIBSSH_SYS_USE_PKG_CONFIG").is_ok() {
         if let Ok(lib) = pkg_config::find_library("libssh") {
@@ -50,54 +42,4 @@ fn main() {
     cfg.define("CMAKE_INSTALL_PREFIX", format!("{}", out_dir.display()));
     let dst = cfg.build();
     println!("cargo:rustc-link-search=native={}", dst.join("lib").display());
-    if target.contains("windows") {
-        println!("cargo:rustc-link-lib=bcrypt");
-        println!("cargo:rustc-link-lib=crypt32");
-        println!("cargo:rustc-link-lib=user32");
-        println!("cargo:rustc-link-lib=ntdll");
-    }
-}
-
-
-#[cfg(not(target_env = "msvc"))]
-fn try_vcpkg() -> bool {
-    false
-}
-
-#[cfg(target_env = "msvc")]
-fn try_vcpkg() -> bool {
-    vcpkg::Config::new()
-        .emit_includes(true)
-        .probe("libssh")
-        .map(|_| {
-            // found libssh which depends on openssl and zlib
-            vcpkg::Config::new()
-                .lib_name("libssl")
-                .lib_name("libcrypto")
-                .probe("openssl")
-                .or_else(|_| {
-                    // openssl 1.1 was not found, try openssl 1.0
-                    vcpkg::Config::new()
-                        .lib_name("libeay32")
-                        .lib_name("ssleay32")
-                        .probe("openssl")
-                })
-                .expect(
-                    "configured libssh from vcpkg but could not \
-                     find openssl libraries that it depends on",
-                );
-
-            vcpkg::Config::new()
-                .lib_names("zlib", "zlib1")
-                .probe("zlib")
-                .expect(
-                    "configured libssh from vcpkg but could not \
-                     find the zlib library that it depends on",
-                );
-
-            println!("cargo:rustc-link-lib=crypt32");
-            println!("cargo:rustc-link-lib=gdi32");
-            println!("cargo:rustc-link-lib=user32");
-        })
-        .is_ok()
 }

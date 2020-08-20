@@ -22,6 +22,3 @@ cmake = "0.1"
 
 [target."cfg(unix)".dependencies]
 openssl-sys = "0.9.35"
-
-[target.'cfg(target_env = "msvc")'.build-dependencies]
-vcpkg = "0.2"
