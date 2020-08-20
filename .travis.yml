@@ -3,7 +3,7 @@ sudo: required
 dist: bionic
 os: 
   - linux
-  - macos
+  - osx
   - windows
 cache: cargo
 rust:
@@ -14,14 +14,10 @@ jobs:
   allow_failures:
     - rust: nightly
   fast_finish: true
-before_script: |
-  if [[ "$TRAVIS_RUST_VERSION" == stable ]]; then
-    cargo install cargo-tarpaulin
-  fi
 script:
-  - export CODECOV_TOKEN="2105f516-c175-4c35-b6ae-fc4e6a14aa58"
   - export CARGO_INCREMENTAL=0
   - RUSTFLAGS="-Ccodegen-units=1 -Cinline-threshold=0 -Coverflow-checks=off"
   - cargo clean
   - cargo build
-  - ./test.sh
+  - if [ "$TRAVIS_OS_NAME" = "osx" ]; ./test.sh ; fi
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; ./test.sh ; fi
