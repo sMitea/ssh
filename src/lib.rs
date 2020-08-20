@@ -22,6 +22,7 @@ enum Session_ {}
 unsafe impl Send for Session {}
 unsafe impl Sync for Session {}
 
+#[link(name = "ssh")]
 extern "C" {
     fn ssh_new() -> *mut Session_;
     fn ssh_free(s: *mut Session_);
