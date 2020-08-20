@@ -1,0 +1,31 @@
+name: linux
+
+on:
+  push:
+    branches:
+    - master
+  pull_request:
+    branches:
+    - master
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-16.04, ubuntu-18.04]
+        rust_toolchain: [stable, beta]
+    runs-on: ${{ matrix.os }}
+    steps:
+    - uses: actions/checkout@v1
+    - name: Install Rust
+      uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: ${{ matrix.rust_toolchain }}
+    - name: Build and test
+      run: |
+        rustc -V
+        cargo -V
+        cargo build
+        test.sh
