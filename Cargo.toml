@@ -1,2 +1,27 @@
-[workspace]
-members = ["libssh-sys"]
+[package]
+name = "ssh-rs"
+version = "0.1.0"
+authors = ["ShawHrown <shawhrown@163.com>"]
+edition = "2018"
+links = "ssh"
+build = "build.rs"
+
+[dependencies]
+libc="0.2"
+log="*"
+bitflags="1.2.1"
+libz-sys = "1.0.21"
+
+[lib]
+name = "libssh"
+path = "src/lib.rs"
+
+[build-dependencies]
+pkg-config = "0.3.11"
+cmake = "0.1"
+
+[target."cfg(unix)".dependencies]
+openssl-sys = "0.9.35"
+
+[target.'cfg(target_env = "msvc")'.build-dependencies]
+vcpkg = "0.2"
