@@ -1,0 +1,39 @@
+language: rust
+sudo: required
+dist: bionic
+os: 
+  - linux
+  - macos
+addons:
+    apt:
+        packages:
+            - libssl-dev
+    brew:
+        packages:
+            - openssl
+cache: cargo
+rust:
+  - stable
+  - beta
+  - nightly
+jobs:
+  allow_failures:
+    - rust: nightly
+  fast_finish: true
+before_script: |
+  if [[ "$TRAVIS_RUST_VERSION" == stable ]]; then
+    cargo install cargo-tarpaulin
+  fi
+script:
+  - export CODECOV_TOKEN="2105f516-c175-4c35-b6ae-fc4e6a14aa58"
+  - export CARGO_INCREMENTAL=0
+  - RUSTFLAGS="-Ccodegen-units=1 -Cinline-threshold=0 -Coverflow-checks=off"
+  - cargo clean
+  - cargo build
+  - ./test.sh
+after_success: |
+  if [[ "$TRAVIS_RUST_VERSION" == stable ]]; then
+    cargo tarpaulin --ciserver travis-ci --coveralls $TRAVIS_JOB_ID
+    cargo tarpaulin --out Xml
+    bash <(curl -s https://codecov.io/bash)
+  fi
