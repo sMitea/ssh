@@ -27,9 +27,11 @@ fn main() {
     println!("cargo:rerun-if-env-changed=DEP_OPENSSL_INCLUDE");
     if let Some(path) = env::var_os("DEP_OPENSSL_INCLUDE") {
         if let Some(path) = env::split_paths(&path).next() {
-            if let Some(path) = path.to_str() {
-                if path.len() > 0 {
-                    cfg.define("OPENSSL_ROOT_DIR", path);
+            if let Some(path) = path.parent() {
+                if let Some(path) = path.to_str() {
+                    if path.len() > 0 {
+                        cfg.define("OPENSSL_ROOT_DIR", path);
+                    }
                 }
             }
         }
@@ -41,5 +43,8 @@ fn main() {
     cfg.define("BUILD_SHARED_LIBS", "OFF");
     cfg.define("CMAKE_INSTALL_PREFIX", format!("{}", out_dir.display()));
     let dst = cfg.build();
-    println!("cargo:rustc-link-search=native={}", dst.join("lib").display());
+    println!(
+        "cargo:rustc-link-search=native={}",
+        dst.join("lib").display()
+    );
 }
