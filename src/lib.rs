@@ -1,6 +1,10 @@
 #[warn(deprecated)]
 extern crate libc;
 
+extern crate libz_sys;
+#[cfg(unix)]
+extern crate openssl_sys;
+
 use self::libc::{c_char, c_int, c_uint, c_void, size_t};
 use libc::{c_uchar, c_ulonglong, uintmax_t};
 use std::ffi::CString;
@@ -22,7 +26,6 @@ enum Session_ {}
 unsafe impl Send for Session {}
 unsafe impl Sync for Session {}
 
-#[link(name = "ssh")]
 extern "C" {
     fn ssh_new() -> *mut Session_;
     fn ssh_free(s: *mut Session_);

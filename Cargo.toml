@@ -3,7 +3,6 @@ name = "ssh"
 version = "0.1.0"
 authors = ["ShawHrown <shawhrown@163.com>"]
 edition = "2018"
-links = "ssh"
 build = "build.rs"
 
 [dependencies]

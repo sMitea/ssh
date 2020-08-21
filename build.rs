@@ -37,6 +37,9 @@ fn main() {
         }
     }
 
+    cfg.define("WITH_GSSAPI", "OFF");
+    cfg.define("BUILD_STATIC_LIB", "ON");
+    cfg.define("BUILD_SHARED_LIBS", "OFF");
     cfg.define("WITH_EXAMPLES", "OFF");
     cfg.define("UNIT_TESTING", "OFF");
     cfg.define("CMAKE_INSTALL_PREFIX", format!("{}", out_dir.display()));
@@ -45,4 +48,5 @@ fn main() {
         "cargo:rustc-link-search=native={}",
         dst.join("lib").display()
     );
+    println!("cargo:rustc-link-lib=static={}", "ssh");
 }
