@@ -13,7 +13,7 @@ bitflags="1.2.1"
 libz-sys = "1.0.21"
 
 [lib]
-name = "libssh"
+name = "ssh"
 path = "src/lib.rs"
 
 [build-dependencies]

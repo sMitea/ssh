@@ -39,8 +39,6 @@ fn main() {
 
     cfg.define("WITH_EXAMPLES", "OFF");
     cfg.define("UNIT_TESTING", "OFF");
-    cfg.define("BUILD_STATIC_LIB", "ON");
-    cfg.define("BUILD_SHARED_LIBS", "OFF");
     cfg.define("CMAKE_INSTALL_PREFIX", format!("{}", out_dir.display()));
     let dst = cfg.build();
     println!(
