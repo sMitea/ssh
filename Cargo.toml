@@ -1,5 +1,5 @@
 [package]
-name = "ssh-rs"
+name = "ssh"
 version = "0.1.0"
 authors = ["ShawHrown <shawhrown@163.com>"]
 edition = "2018"
