@@ -20,4 +20,4 @@ pkg-config = "0.3.11"
 cmake = "0.1"
 
 [target."cfg(unix)".dependencies]
-openssl-sys = "0.9.35"
+openssl-sys = {version = "0.9.35" , features = ["vendored"]}
