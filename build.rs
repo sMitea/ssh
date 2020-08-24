@@ -44,6 +44,8 @@ fn main() {
                 if let Some(path) = path.to_str() {
                     if path.len() > 0 {
                         cfg.define("ZLIB_ROOT_DIR", path);
+                        cfg.define("ZLIB_LIBRARY", format!("{}/lib",path));
+                        cfg.define("ZLIB_INCLUDE_DIR", format!("{}/include",path));
                     }
                 }
             }
