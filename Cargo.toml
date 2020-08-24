@@ -9,7 +9,7 @@ build = "build.rs"
 libc="0.2"
 log="*"
 bitflags="1.2.1"
-libz-sys = "1.0.21"
+libz-sys = {version = "*", features = ["static","zlib-ng"]}
 
 [lib]
 name = "ssh"

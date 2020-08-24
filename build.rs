@@ -12,6 +12,7 @@ fn check_update_git() {
 
 fn main() {
     check_update_git();
+    println!("cargo:rerun-if-changed=build.rs");
     println!("cargo:rerun-if-env-changed=LIBSSH_SYS_USE_PKG_CONFIG");
     if env::var("LIBSSH_SYS_USE_PKG_CONFIG").is_ok() {
         if let Ok(lib) = pkg_config::find_library("libssh") {
@@ -31,6 +32,18 @@ fn main() {
                 if let Some(path) = path.to_str() {
                     if path.len() > 0 {
                         cfg.define("OPENSSL_ROOT_DIR", path);
+                    }
+                }
+            }
+        }
+    }
+    println!("cargo:rerun-if-env-changed=DEP_Z_INCLUDE");
+    if let Some(path) = env::var_os("DEP_Z_INCLUDE") {
+        if let Some(path) = env::split_paths(&path).next() {
+            if let Some(path) = path.parent() {
+                if let Some(path) = path.to_str() {
+                    if path.len() > 0 {
+                        cfg.define("ZLIB_ROOT_DIR", path);
                     }
                 }
             }
