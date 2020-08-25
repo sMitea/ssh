@@ -19,8 +19,8 @@ path = "src/lib.rs"
 pkg-config = "0.3.11"
 cmake = "0.1"
 
-[target."cfg(unix)".dependencies]
-openssl-sys = {version = "*"}
+[target.'cfg(target_env = "musl")'.dependencies]
+openssl-sys = "0.9.35"
 
-[features]
-vendored = ["openssl-sys/vendored"]
+[target.'cfg(not(target_env = "musl"))'.dependencies]
+openssl-sys = {version = "0.9.35", features = ["vendored"]}
