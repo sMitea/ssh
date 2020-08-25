@@ -1,4 +1,12 @@
 target
+.vscode
+.idea
+.settings
+.classpath
+.project
+*.iml
+*.tar.gz
+bin
 Cargo.lock
-tests/sshd
-.DS_Store
+kcov-38
+sshd
