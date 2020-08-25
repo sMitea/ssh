@@ -45,6 +45,7 @@ fn main() {
                     if path.len() > 0 {
                         cfg.define("ZLIB_ROOT_DIR", path);
                         cfg.define("ZLIB_LIBRARY", format!("{}/lib",path));
+                        cfg.define("ZLIB_LIBRARY", format!("{}/lib64",path));
                         cfg.define("ZLIB_INCLUDE_DIR", format!("{}/include",path));
                     }
                 }
@@ -52,6 +53,11 @@ fn main() {
         }
     }
 
+    cfg.define("WITH_ZLIB","ON");
+    cfg.define("WITH_ABI_BREAK","ON");
+    cfg.define("WITH_SERVER","OFF");
+    cfg.define("WITH_GCRYPT","OFF");
+    cfg.define("WITH_NACL","OFF");
     cfg.define("WITH_GSSAPI", "OFF");
     cfg.define("BUILD_STATIC_LIB", "ON");
     cfg.define("BUILD_SHARED_LIBS", "OFF");
@@ -62,6 +68,10 @@ fn main() {
     println!(
         "cargo:rustc-link-search=native={}",
         dst.join("lib").display()
+    );
+    println!(
+        "cargo:rustc-link-search=native={}",
+        dst.join("lib64").display()
     );
     println!("cargo:rustc-link-lib=static={}", "ssh");
 }
