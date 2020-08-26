@@ -10,6 +10,7 @@ libc="0.2"
 log="*"
 bitflags="1.2.1"
 libz-sys = {version = "*", features = ["static","zlib-ng"]}
+openssl-sys = {version = "0.9.35", features = ["vendored"]}
 
 [lib]
 name = "ssh"
@@ -18,9 +19,3 @@ path = "src/lib.rs"
 [build-dependencies]
 pkg-config = "0.3.11"
 cmake = "0.1"
-
-[target.'cfg(target_env = "musl")'.dependencies]
-openssl-sys = "0.9.35"
-
-[target.'cfg(not(target_env = "musl"))'.dependencies]
-openssl-sys = {version = "0.9.35", features = ["vendored"]}
