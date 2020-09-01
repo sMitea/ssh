@@ -893,6 +893,15 @@ impl<'b> Sftp<'b> {
         if stat.is_null() {
             return Err(err(self.session));
         };
+        let size = if !stat.is_null() {
+            let size = unsafe { (*stat).size };
+            unsafe{
+                libc::free(stat as *mut libc::c_void);
+            }
+            size
+        } else {
+            0_u64
+        };
         let file = unsafe {
             sftp_open(
                 self.sftp,
@@ -904,11 +913,7 @@ impl<'b> Sftp<'b> {
         if file.is_null() {
             return Err(err(self.session));
         } else {
-            let size = if !stat.is_null() {
-                unsafe { (*stat).size }
-            } else {
-                0_u64
-            };
+            
             Ok(SftpFile {
                 sftp: self,
                 file,
