@@ -23,7 +23,7 @@ pub fn authed_session() -> Result<Session, ssh::Error> {
 
 #[test]
 fn run_cmd() {
-    let mut session = authed_session().unwrap();
+    let session = authed_session().unwrap();
     {
         let mut s = session.channel_new().unwrap();
         s.open_session().unwrap();
@@ -40,7 +40,7 @@ fn run_cmd() {
 
 #[test]
 fn run_cmd_with_timeout() {
-    let mut session = authed_session().unwrap();
+    let session = authed_session().unwrap();
     {
         let mut s = session.channel_new().unwrap();
         s.open_session().unwrap();
@@ -58,7 +58,7 @@ fn run_cmd_with_timeout() {
 
 #[test]
 fn sftp_read() {
-    let mut session = authed_session().unwrap();
+    let session = authed_session().unwrap();
     {
         std::fs::write("/tmp/read_test", "hello world").unwrap();
         let mut sftp = session.sftp_new().unwrap();
@@ -78,7 +78,7 @@ fn sftp_read() {
 
 #[test]
 fn sftp_write() {
-    let mut session = authed_session().unwrap();
+    let session = authed_session().unwrap();
     {
         std::fs::write("/tmp/write_test", "hello world").unwrap();
         let mut sftp = session.sftp_new().unwrap();

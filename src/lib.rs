@@ -255,7 +255,7 @@ impl Session {
             Err(err(self))
         }
     }
-    /// Allow version 1 of the protocol (default unspecified).
+    /// Allow version 2 of the protocol (default unspecified).
     pub fn set_ssh2(&mut self, v: bool) -> Result<(), Error> {
         let v: [c_int; 1] = [if v { 1 } else { 0 }];
         let e = unsafe {
@@ -290,7 +290,7 @@ impl Session {
     }
 
     /// Check whether the remote server's key is known.
-    pub fn is_server_known(&mut self) -> Result<ServerKnown, Error> {
+    pub fn is_server_known(&self) -> Result<ServerKnown, Error> {
         let e = unsafe { ssh_is_server_known(self.session) };
         if e >= 0 {
             Ok(unsafe { std::mem::transmute(e) })
@@ -308,7 +308,7 @@ impl Session {
         }
     }
     /// Get a hash of the server's public key
-    pub fn get_pubkey_hash(&mut self) -> Result<Vec<u8>, Error> {
+    pub fn get_pubkey_hash(&self) -> Result<Vec<u8>, Error> {
         let mut ptr = std::ptr::null_mut();
         let e = unsafe { ssh_get_pubkey_hash(self.session, std::mem::transmute(&mut ptr)) };
         if e >= 0 {
@@ -409,7 +409,7 @@ impl Session {
         }
     }
     /// Start an SCP connection.
-    pub fn scp_new<'b, P: AsRef<Path>>(&'b mut self, mode: Mode, v: P) -> Result<Scp<'b>, Error> {
+    pub fn scp_new<'b, P: AsRef<Path>>(&'b self, mode: Mode, v: P) -> Result<Scp<'b>, Error> {
         let scp = unsafe {
             ssh_scp_new(
                 self.session,
@@ -428,7 +428,7 @@ impl Session {
         }
     }
     /// Start a channel to issue remote commands.
-    pub fn channel_new<'b>(&'b mut self) -> Result<Channel<'b>, Error> {
+    pub fn channel_new<'b>(&'b self) -> Result<Channel<'b>, Error> {
         let e = unsafe { ssh_channel_new(self.session) };
         if e.is_null() {
             Err(err(self))
@@ -440,7 +440,7 @@ impl Session {
         }
     }
 
-    pub fn sftp_new(&mut self) -> Result<Sftp, Error> {
+    pub fn sftp_new(&self) -> Result<Sftp, Error> {
         let sftp = unsafe { sftp_new(self.session) };
         if sftp.is_null() {
             Err(err(self))
@@ -452,7 +452,7 @@ impl Session {
         }
     }
 
-    pub fn mkdir<P: AsRef<Path>>(&mut self, path: P, mode: usize) -> Result<Sftp, Error> {
+    pub fn mkdir<P: AsRef<Path>>(&self, path: P, mode: usize) -> Result<Sftp, Error> {
         let p = path_as_ptr(path.as_ref());
         let sftp = unsafe { sftp_mkdir(self.session, p.as_ptr() as *const _, mode as c_int) };
         if sftp.is_null() {
@@ -524,7 +524,7 @@ pub struct Channel<'b> {
 }
 
 impl<'b> Channel<'b> {
-    pub fn open_session(&mut self) -> Result<(), Error> {
+    pub fn open_session(&self) -> Result<(), Error> {
         let e = unsafe { ssh_channel_open_session(self.channel) };
         if e == 0 {
             Ok(())
