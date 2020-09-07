@@ -27,12 +27,12 @@ fn run_cmd() {
     {
         let mut s = session.channel_new().unwrap();
         s.open_session().unwrap();
-        s.request_exec(b"echo Hello world").unwrap();
+        s.request_exec(b"export ORACLE_SID=/app/u01/12c;echo $ORACLE_SID").unwrap();
         s.send_eof().unwrap();
         let mut buf = Vec::new();
         s.stdout().read_to_end(&mut buf).unwrap();
         assert_eq!(
-            "Hello world\n".to_string(),
+            "/app/u01/12c\n".to_string(),
             std::str::from_utf8(&buf).unwrap()
         );
     }

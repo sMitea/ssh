@@ -506,6 +506,7 @@ extern "C" {
     fn ssh_channel_free(s: *mut Channel_);
     fn ssh_channel_open_session(s: *mut Channel_) -> c_int;
     fn ssh_channel_request_exec(s: *mut Channel_, b: *const c_char) -> c_int;
+    fn ssh_channel_request_env(s: *mut Channel_, b: *const c_char, c: *const c_char) -> c_int;
     fn ssh_channel_read(s: *mut Channel_, b: *mut c_char, c: size_t, is_stderr: c_int) -> c_int;
     fn ssh_channel_read_timeout(
         s: *mut Channel_,
@@ -549,6 +550,18 @@ impl<'d, 'c: 'd> Channel<'c> {
             Err(err(self.session))
         }
     }
+
+    pub fn set_env(&mut self, key: &str, value: &str) -> Result<(), Error> {
+        let key = std::ffi::CString::new(key).unwrap();
+        let value = std::ffi::CString::new(value).unwrap();
+        let e = unsafe { ssh_channel_request_env(self.channel, key.as_ptr() as *const _, value.as_ptr() as *const _) };
+        if e == 0 {
+            Ok(())
+        } else {
+            Err(err(self.session))
+        }
+    }
+
     pub fn send_eof(&mut self) -> Result<(), Error> {
         let e = unsafe { ssh_channel_send_eof(self.channel) };
         if e == 0 {
